@@ -1,0 +1,42 @@
+version: '3'
+
+vars:
+  BUILD_TYPE: '{{.BUILD_TYPE | default "Debug"}}'
+  PROFILE: 'profiles/clang'
+
+tasks:
+  deps:
+    desc: Установить зависимости через Conan
+    sources:
+      - conanfile.py
+      - '{{.PROFILE}}'
+    cmds:
+      - conan install . --profile={{.PROFILE}} -s build_type={{.BUILD_TYPE}} --build=missing
+
+  configure:
+    desc: Сконфигурировать CMake
+    deps: [deps]
+    cmds:
+      - cmake --preset conan-{{lower .BUILD_TYPE}}
+
+  build:
+    desc: Собрать проект
+    deps: [configure]
+    cmds:
+      - cmake --build --preset conan-{{lower .BUILD_TYPE}} -j
+
+  test:
+    desc: Прогнать юнит-тесты
+    deps: [build]
+    cmds:
+      - ctest --preset conan-{{lower .BUILD_TYPE}} --output-on-failure
+
+  format:
+    desc: Прогнать clang-format по исходникам
+    cmds:
+      - find src tests -name '*.hpp' -o -name '*.cpp' | xargs clang-format -i
+
+  clean:
+    desc: Удалить директории сборки
+    cmds:
+      - rm -rf build output CMakeUserPresets.json
