@@ -3,19 +3,28 @@ version: '3'
 vars:
   BUILD_TYPE: '{{.BUILD_TYPE | default "Debug"}}'
   PROFILE: 'profiles/clang'
+  BUILD_DIR: 'build/{{.BUILD_TYPE}}'
 
 tasks:
+  venv:
+    desc: Создать .venv и установить Conan
+    status:
+      - test -x .venv/bin/conan
+    cmds:
+      - python3 -m venv .venv
+      - .venv/bin/pip install --upgrade pip -r requirements.txt
+
   deps:
     desc: Установить зависимости через Conan
-    sources:
-      - conanfile.py
-      - '{{.PROFILE}}'
+    deps: [venv]
     cmds:
-      - conan install . --profile={{.PROFILE}} -s build_type={{.BUILD_TYPE}} --build=missing
+      - .venv/bin/conan install . --profile={{.PROFILE}} -s build_type={{.BUILD_TYPE}} --build=missing
 
   configure:
     desc: Сконфигурировать CMake
     deps: [deps]
+    status:
+      - test -f {{.BUILD_DIR}}/build.ninja
     cmds:
       - cmake --preset conan-{{lower .BUILD_TYPE}}
 
@@ -34,9 +43,9 @@ tasks:
   format:
     desc: Прогнать clang-format по исходникам
     cmds:
-      - find src tests -name '*.hpp' -o -name '*.cpp' | xargs clang-format -i
+      - find src tests \( -name '*.hpp' -o -name '*.cpp' \) -exec clang-format -i {} +
 
   clean:
-    desc: Удалить директории сборки
+    desc: Удалить директории сборки и кэш task
     cmds:
-      - rm -rf build output CMakeUserPresets.json
+      - rm -rf build output CMakeUserPresets.json .task

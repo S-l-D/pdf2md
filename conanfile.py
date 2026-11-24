@@ -12,13 +12,10 @@ class Pdf2MdEngineRecipe(ConanFile):
     }
     default_options = {
         "enable_tests": True,
-        # Форсируем легковесную CPU-сборку для ONNX Runtime
-        "onnxruntime/*:shared": True,
         "libwebp/*:shared": False,
     }
 
     def requirements(self):
-        self.requires("onnxruntime/1.18.1")
         self.requires("libwebp/1.4.0")
         self.requires("fmt/11.0.2")
         self.requires("cli11/2.4.2")
